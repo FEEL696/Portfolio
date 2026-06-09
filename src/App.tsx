@@ -48,8 +48,8 @@ const App: React.FC<{ content: PortfolioContent }> = ({ content }) => {
   // Assets Preloading Logic
   useEffect(() => {
     const heroVideoUrl = "https://bs.boomstream.com/balancer/rCWyWdI7-3aLokGCi.mp4";
-    
-    // Prioritize only critical assets: Hero Video and Project Cover Images.
+
+    // Prioritize only critical assets: the full hero video and project cover images.
     // Gallery images are loaded lazily to prevent blocking the main interface.
     const projectAssets = Array.from(new Set([
       heroVideoUrl,
@@ -71,15 +71,11 @@ const App: React.FC<{ content: PortfolioContent }> = ({ content }) => {
     };
 
     projectAssets.forEach((url) => {
-      const isVideo = url.toLowerCase().endsWith('.mp4');
-      if (isVideo) {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.muted = true;
-        video.playsInline = true;
-        video.src = url;
-        video.onloadedmetadata = incrementProgress;
-        video.onerror = incrementProgress;
+      if (url === heroVideoUrl) {
+        fetch(url)
+          .then(response => response.blob())
+          .then(() => incrementProgress())
+          .catch(() => incrementProgress());
       } else {
         const img = new Image();
         img.src = url;
