@@ -10,6 +10,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        admin: path.resolve(__dirname, 'admin/index.html'),
+      },
       output: {
         manualChunks: {
           react: ['react', 'react-dom'],
