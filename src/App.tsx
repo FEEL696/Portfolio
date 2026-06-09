@@ -4,6 +4,8 @@ import ProjectModalManager from './components/ProjectModalManager.tsx';
 import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import { PortfolioContent } from './types/portfolio.ts';
 
+const LOADER_MIN_DURATION_MS = 1200;
+
 const App: React.FC<{ content: PortfolioContent }> = ({ content }) => {
   const [loading, setLoading] = useState(true);
   const [introFinished, setIntroFinished] = useState(false); 
@@ -11,38 +13,37 @@ const App: React.FC<{ content: PortfolioContent }> = ({ content }) => {
   const [displayProgress, setDisplayProgress] = useState(0);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const actualProgressRef = useRef(0);
+  const loaderStartedAtRef = useRef<number | null>(null);
   
   useScroll({
     target: containerRef,
     offset: ["start start", "end end"]
   });
 
+  useEffect(() => {
+    actualProgressRef.current = actualProgress;
+  }, [actualProgress]);
+
   // Loader Visual Ticking
   useEffect(() => {
-    if (!loading && displayProgress >= 100) return;
+    if (!loading) return;
+
     let animationFrameId: number;
-    let lastUpdate = 0;
+    loaderStartedAtRef.current = performance.now();
 
     const smoothStep = (timestamp: number) => {
-      if (timestamp - lastUpdate > 16) { // ~60fps
-        setDisplayProgress(prev => {
-          if (prev < actualProgress) {
-             // Speed up a bit if behind
-             const diff = actualProgress - prev;
-             const step = Math.ceil(diff / 10) || 1; 
-             return Math.min(prev + step, 100);
-          }
-          return prev;
-        });
-        lastUpdate = timestamp;
-      }
-      if (displayProgress < 100 || actualProgress < 100) {
-        animationFrameId = requestAnimationFrame(smoothStep);
-      }
+      const startedAt = loaderStartedAtRef.current ?? timestamp;
+      const elapsedProgress = Math.min(100, ((timestamp - startedAt) / LOADER_MIN_DURATION_MS) * 100);
+      const nextProgress = Math.min(actualProgressRef.current, elapsedProgress);
+
+      setDisplayProgress((prev) => (nextProgress > prev ? nextProgress : prev));
+      animationFrameId = requestAnimationFrame(smoothStep);
     };
+
     animationFrameId = requestAnimationFrame(smoothStep);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [actualProgress, displayProgress, loading]);
+  }, [loading]);
 
   // Assets Preloading Logic
   useEffect(() => {
@@ -72,11 +73,13 @@ const App: React.FC<{ content: PortfolioContent }> = ({ content }) => {
     projectAssets.forEach((url) => {
       const isVideo = url.toLowerCase().endsWith('.mp4');
       if (isVideo) {
-        // Fetching video blob ensures it's fully downloaded before playing
-        fetch(url)
-          .then(response => response.blob())
-          .then(() => incrementProgress())
-          .catch(() => incrementProgress());
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+        video.src = url;
+        video.onloadedmetadata = incrementProgress;
+        video.onerror = incrementProgress;
       } else {
         const img = new Image();
         img.src = url;
