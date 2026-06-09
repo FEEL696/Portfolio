@@ -1,0 +1,61 @@
+:root {
+  --bg: #000000;
+}
+
+@font-face {
+  font-family: 'Apparel Display Italic';
+  src: url('https://raw.githubusercontent.com/FEEL696/Fonts/main/apparel-display-regular-it.ttf')
+    format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Apparel Display Bold Italic';
+  src: url('https://raw.githubusercontent.com/FEEL696/Fonts/main/apparel-display-bold-it.ttf')
+    format('truetype');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
+html {
+  background-color: var(--bg);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg);
+  color: #ffffff;
+  margin: 0;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif {
+  font-family: 'Instrument Serif', serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
