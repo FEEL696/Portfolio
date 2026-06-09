@@ -10,6 +10,8 @@ const MOBILE_PROJECT_END = 0.7;
 const DESKTOP_PROJECT_END = 0.6;
 const MOBILE_TRANSITION_END = 0.75;
 const DESKTOP_TRANSITION_END = 0.62;
+const MOBILE_SERVICES_FADE_START = 0.94;
+const DESKTOP_SERVICES_FADE_START = 0.93;
 
 export default function ProjectsAndServices({
   projects,
@@ -63,8 +65,13 @@ export default function ProjectsAndServices({
   );
   const servicesOpacity = useTransform(
     scrollYProgress,
-    [isMobile ? MOBILE_TRANSITION_END : DESKTOP_TRANSITION_END, isMobile ? 0.8 : 0.63],
-    [0, 1]
+    [
+      isMobile ? MOBILE_TRANSITION_END : DESKTOP_TRANSITION_END,
+      isMobile ? 0.8 : 0.63,
+      isMobile ? MOBILE_SERVICES_FADE_START : DESKTOP_SERVICES_FADE_START,
+      1,
+    ],
+    [0, 1, 1, 0]
   );
   const servicesY = useTransform(
     scrollYProgress,
