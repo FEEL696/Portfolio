@@ -18,8 +18,81 @@ interface ProjectContentProps {
   isMobile: boolean;
 }
 
-function renderMedia(src: string) {
+type VideoCacheEntry =
+  | { status: 'loading'; promise: Promise<string> }
+  | { status: 'ready'; objectUrl: string }
+  | { status: 'failed' };
+
+const modalVideoCache = new Map<string, VideoCacheEntry>();
+
+function getCachedVideoSrc(src: string): string | null {
+  const entry = modalVideoCache.get(src);
+  return entry?.status === 'ready' ? entry.objectUrl : null;
+}
+
+function warmModalVideoCache(src: string) {
+  const cached = modalVideoCache.get(src);
+  if (cached?.status === 'loading' || cached?.status === 'ready') {
+    return;
+  }
+
+  const promise = fetch(src)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Unable to cache video: ${response.status}`);
+      }
+      return response.blob();
+    })
+    .then((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      modalVideoCache.set(src, { status: 'ready', objectUrl });
+      return objectUrl;
+    })
+    .catch(() => {
+      // Some CDNs disallow CORS fetches for media. In that case keep native video loading.
+      modalVideoCache.set(src, { status: 'failed' });
+      return src;
+    });
+
+  modalVideoCache.set(src, { status: 'loading', promise });
+}
+
+function ModalMedia({ src }: { src: string }) {
   if (isVideoUrl(src)) {
+    const [cachedSrc, setCachedSrc] = useState(() => getCachedVideoSrc(src));
+
+    useEffect(() => {
+      let active = true;
+      const cached = modalVideoCache.get(src);
+
+      if (cached?.status === 'ready') {
+        setCachedSrc(cached.objectUrl);
+        return;
+      }
+
+      if (cached?.status === 'loading') {
+        cached.promise.then((objectUrl) => {
+          if (active && objectUrl !== src) {
+            setCachedSrc(objectUrl);
+          }
+        });
+      } else {
+        warmModalVideoCache(src);
+        const nextCached = modalVideoCache.get(src);
+        if (nextCached?.status === 'loading') {
+          nextCached.promise.then((objectUrl) => {
+            if (active && objectUrl !== src) {
+              setCachedSrc(objectUrl);
+            }
+          });
+        }
+      }
+
+      return () => {
+        active = false;
+      };
+    }, [src]);
+
     return (
       <video
         autoPlay
@@ -29,7 +102,7 @@ function renderMedia(src: string) {
         preload="metadata"
         className="block h-full w-full select-none object-cover pointer-events-none"
       >
-        <source src={src} />
+        <source src={cachedSrc ?? src} />
       </video>
     );
   }
@@ -292,7 +365,7 @@ const ProjectContent: React.FC<ProjectContentProps> = ({ project, onNext, onPrev
               key={`${project.id}-mob-img-${index}`}
               className="aspect-[4/3] w-full overflow-hidden bg-neutral-100 shadow-sm"
             >
-              {renderMedia(src)}
+              <ModalMedia src={src} />
             </div>
           ))}
         </div>
@@ -341,7 +414,7 @@ const ProjectContent: React.FC<ProjectContentProps> = ({ project, onNext, onPrev
           {loopGallery.map((src, index) => (
             <div key={`${project.id}-img-${index}`} className="flex-shrink-0">
               <div className="aspect-[4/3] h-[50vh] overflow-hidden bg-neutral-100 shadow-sm xl:h-[50vh] 2xl:h-[65vh]">
-                {renderMedia(src)}
+                <ModalMedia src={src} />
               </div>
             </div>
           ))}
